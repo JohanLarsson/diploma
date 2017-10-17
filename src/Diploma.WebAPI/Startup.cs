@@ -7,7 +7,6 @@ using FluentValidation.AspNetCore;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -27,7 +26,7 @@ namespace Diploma.WebAPI
 
         public IConfiguration Configuration { get; }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
@@ -43,12 +42,7 @@ namespace Diploma.WebAPI
                 cfg => cfg.AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod());
-
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
+            
             app.UseMvc();
 
             using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>()

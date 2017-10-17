@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Diploma.WebAPI.Infrastructure.Errors;
+using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 
@@ -32,28 +34,46 @@ namespace Diploma.WebAPI.Infrastructure
 
         private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            if (exception is RestException re)
+            context.Response.ContentType = "application/json";
+
+            var result = string.Empty;
+
+            switch (exception)
             {
-                context.Response.StatusCode = (int)re.Code;
-            }
-            else
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                case ValidationException ve:
+                    context.Response.StatusCode = 422; // unprocessable entity
+
+                    var errors = ve.Errors.ToDictionary(
+                        pair => pair.PropertyName,
+                        pair => pair.ErrorMessage);
+
+                    result = JsonConvert.SerializeObject(
+                        new
+                        {
+                            errors
+                        });
+                    
+                    break;
+                case RestException re:
+                    context.Response.StatusCode = (int)re.Code;
+                    break;
+                default:
+                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    break;
             }
 
-            if (!string.IsNullOrWhiteSpace(exception.Message))
+            if (string.IsNullOrWhiteSpace(result))
             {
-                context.Response.ContentType = "application/json";
-                var result = JsonConvert.SerializeObject(
+                result = JsonConvert.SerializeObject(
                     new
                     {
                         errors = exception.Message
                     });
-
-                // ReSharper disable once AsyncConverter.AsyncAwaitMayBeElidedHighlighting
-                await context.Response.WriteAsync(result)
-                    .ConfigureAwait(false);
             }
+
+            // ReSharper disable once AsyncConverter.AsyncAwaitMayBeElidedHighlighting
+            await context.Response.WriteAsync(result)
+                .ConfigureAwait(false);
         }
     }
 }
